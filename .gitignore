@@ -1,0 +1,5 @@
+# secrets: generate locally (see README)
+bind/config/rndc.key
+# BIND runtime files
+bind/zones/*.jnl
+bind/zones/*.jbk

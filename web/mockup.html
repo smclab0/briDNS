@@ -1,0 +1,596 @@
+<title>briDNS Console</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: operator console. Fixed left rail (zones + views), working pane on the right; rail folds to a top bar on phones. */
+:root {
+  --bg: #f2f0f7;
+  --panel: #ffffff;
+  --sunk: #e9e5f2;
+  --ink: #1d1730;
+  --muted: #675f7d;
+  --line: #dcd6e8;
+  --accent: #6d3fd1;
+  --accent-ink: #ffffff;
+  --accent-soft: #ebe3fb;
+  --ok: #1f7a4a;   --ok-soft: #dcf0e4;
+  --warn: #9a6200; --warn-soft: #f8ebcf;
+  --bad: #b3261e;  --bad-soft: #f8dcd9;
+  --rail: #241a3d; --rail-ink: #d6cdee; --rail-active: #372a5c;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #120e1d; --panel: #1b1529; --sunk: #150f22; --ink: #ece7f7; --muted: #a197ba; --line: #2e2543;
+  --accent: #a98bff; --accent-ink: #1a0d3d; --accent-soft: #2e2152;
+  --ok: #5fcf8e; --ok-soft: #133523; --warn: #e7b453; --warn-soft: #3a2c10; --bad: #f0857c; --bad-soft: #3d1815;
+  --rail: #0c0915; --rail-ink: #c2b7de; --rail-active: #2a1f47; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #120e1d; --panel: #1b1529; --sunk: #150f22; --ink: #ece7f7; --muted: #a197ba; --line: #2e2543;
+  --accent: #a98bff; --accent-ink: #1a0d3d; --accent-soft: #2e2152;
+  --ok: #5fcf8e; --ok-soft: #133523; --warn: #e7b453; --warn-soft: #3a2c10; --bad: #f0857c; --bad-soft: #3d1815;
+  --rail: #0c0915; --rail-ink: #c2b7de; --rail-active: #2a1f47; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--f-mono); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+
+.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100%; }
+
+/* Rail */
+.rail { background: var(--rail); color: var(--rail-ink); display: flex; flex-direction: column; gap: 20px; padding-block: 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; color: #fff; }
+.brand svg { flex: none; }
+.brand b { font: 700 22px/1 var(--f-display); letter-spacing: -0.01em; color: #f7f4ff; }
+.brand b span { color: #b79cff; }
+.brand small { display: block; font: 500 11px/1.2 var(--f-mono); color: var(--rail-ink); opacity: .75; margin-top: 3px; }
+.rail h6 { margin: 0 0 6px; font: 600 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-radius: 6px; color: var(--rail-ink); text-decoration: none; }
+.nav a:hover { background: var(--rail-active); color: #fff; }
+.nav a.on { background: var(--rail-active); color: #fff; box-shadow: inset 2px 0 0 #b79cff; }
+.nav a .mono { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav a em { font-style: normal; font-size: 11px; opacity: .6; }
+.rail .foot { margin-top: auto; font-size: 12px; opacity: .7; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: inline-block; flex: none; }
+.dot.warn { background: var(--warn); }
+
+/* Main */
+.main { min-width: 0; display: flex; flex-direction: column; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; padding-block: 14px; padding-left: 28px; padding-right: max(28px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); background: var(--panel); }
+.crumbs { color: var(--muted); font-size: 13px; }
+.crumbs b { color: var(--ink); font-weight: 600; }
+.mock { font: 500 11px/1 var(--f-mono); padding: 5px 8px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); letter-spacing: .03em; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.view { padding-block: 24px 48px; padding-left: 28px; padding-right: max(28px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+h1 { margin: 0; font: 700 28px/1.15 var(--f-display); letter-spacing: -0.015em; text-wrap: balance; }
+h2 { margin: 0; font: 600 16px/1.3 var(--f-body); }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; }
+
+.btn { border: 1px solid var(--line); background: var(--panel); padding: 7px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--bad); }
+.btn.sm { padding: 4px 9px; font-size: 13px; }
+.btn.ghost { border-color: transparent; background: transparent; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.panel > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.panel > .body { padding: 16px; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stat { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.stat label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.stat strong { font: 600 24px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12.5px; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.info { background: var(--accent-soft); color: var(--accent); }
+.rtype { font: 500 11.5px/1 var(--f-mono); padding: 4px 6px; border-radius: 4px; background: var(--sunk); border: 1px solid var(--line); min-width: 48px; display: inline-block; text-align: center; }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--sunk); white-space: nowrap; }
+tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+tbody tr:last-child td { border-bottom: 0; }
+td.val { font-family: var(--f-mono); font-size: 12.5px; word-break: break-all; min-width: 180px; }
+td.right, th.right { text-align: right; }
+tr.clickable { cursor: pointer; }
+tr.new { animation: flash 1.6s ease-out; }
+@keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tabs button { border: 0; background: none; padding: 9px 12px; cursor: pointer; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 10px; font: 500 12px/1.4 var(--f-mono); cursor: pointer; }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input.search, .field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 7px 10px; width: 100%; }
+input.search { width: 220px; max-width: 100%; }
+
+pre.zone { margin: 0; padding: 16px; background: var(--sunk); border-radius: 0 0 8px 8px; overflow-x: auto; font: 12.5px/1.65 var(--f-mono); color: var(--ink); }
+pre.zone .c { color: var(--muted); }
+pre.zone .d { color: var(--accent); }
+
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; margin: 0; }
+.kv dt { color: var(--muted); font-size: 13px; }
+.kv dd { margin: 0; font-family: var(--f-mono); font-size: 12.5px; word-break: break-all; }
+
+.feed { list-style: none; margin: 0; padding: 0; }
+.feed li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 9px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.feed li:last-child { border-bottom: 0; }
+.feed time { font: 12px/1.5 var(--f-mono); color: var(--muted); }
+
+.spark { width: 100%; height: 150px; display: block; }
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar { display: grid; grid-template-columns: 52px minmax(0, 1fr) 46px; gap: 10px; align-items: center; font-size: 12.5px; }
+.bar i { display: block; height: 8px; border-radius: 4px; background: var(--accent); }
+.bar .track { background: var(--sunk); border-radius: 4px; }
+
+.log { font: 12px/1.7 var(--f-mono); }
+.log td { padding: 5px 14px; white-space: nowrap; }
+
+/* Drawer form */
+.scrim { position: fixed; inset: 0; background: rgb(18 10 36 / .5); z-index: 20; display: flex; justify-content: flex-end; }
+.drawer { width: min(440px, 100%); height: 100%; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer header { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.drawer form { padding: 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 12.5px; font-weight: 600; }
+.field small { color: var(--muted); font-size: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.err { color: var(--bad); font-size: 12.5px; }
+.drawer footer { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; }
+
+.toast { position: fixed; right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 6px; font: 12.5px/1.4 var(--f-mono); z-index: 30; max-width: calc(100% - 40px); box-shadow: 0 6px 24px rgb(0 0 0 / .2); }
+
+@media (max-width: 1080px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px; padding-block: 14px; }
+  .rail .zones-nav, .rail .foot { display: none; }
+  .rail .views-nav .nav { flex-direction: row; flex-wrap: wrap; }
+  .top, .view { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1 { font-size: 23px; }
+  .row2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { tr.new { animation: none; } }
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="7" fill="#6d3fd1"/><path d="M5 20 Q15 7 25 20" stroke="#f1ebff" stroke-width="2.2" fill="none"/><path d="M5 20h20M10 20v-4.2M15 20v-6.4M20 20v-4.2" stroke="#f1ebff" stroke-width="1.6"/></svg>
+      <div><b>bri<span>DNS</span></b><small>BIND 9.18.39 · ns1</small></div>
+    </div>
+    <div class="views-nav">
+      <h6>Console</h6>
+      <nav class="nav" id="viewNav"></nav>
+    </div>
+    <div class="zones-nav">
+      <h6>Zones</h6>
+      <nav class="nav" id="zoneNav"></nav>
+    </div>
+    <div class="foot"><span class="dot"></span> named running · up 12d 4h</div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="actions">
+        <span class="mock" title="This is a design mockup. Nothing talks to BIND yet.">MOCKUP · SAMPLE DATA</span>
+        <button class="btn" id="checkBtn" type="button">Check config</button>
+        <button class="btn primary" id="reloadBtn" type="button">Reload BIND</button>
+      </div>
+    </div>
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <header><h2 id="drawerTitle">Add record</h2><button class="btn ghost sm" type="button" id="closeDrawer" aria-label="Close">✕</button></header>
+    <form id="recForm" novalidate>
+      <div class="field">
+        <label for="fName">Name</label>
+        <input id="fName" placeholder="e.g. printer, or @ for the zone apex" autocomplete="off">
+        <small id="fNameHint"></small>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="fType">Type</label>
+          <select id="fType"></select>
+        </div>
+        <div class="field">
+          <label for="fTtl">TTL (seconds)</label>
+          <input id="fTtl" type="number" min="60" step="60" value="3600">
+        </div>
+      </div>
+      <div class="field" id="prioWrap" hidden>
+        <label for="fPrio">Priority</label>
+        <input id="fPrio" type="number" min="0" value="10">
+      </div>
+      <div class="field">
+        <label for="fVal">Value</label>
+        <input id="fVal" autocomplete="off">
+        <small id="fValHint"></small>
+      </div>
+      <div class="field">
+        <label for="fNote">Note (stored by briDNS, not written to the zone)</label>
+        <input id="fNote" placeholder="Optional" autocomplete="off">
+      </div>
+      <p class="err" id="fErr" hidden></p>
+    </form>
+    <footer>
+      <button class="btn" type="button" id="cancelDrawer">Cancel</button>
+      <button class="btn primary" type="submit" form="recForm" id="saveRec">Save record</button>
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const TYPES = {
+  A:     { hint: "IPv4 address, e.g. 192.168.1.40", re: /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/ },
+  AAAA:  { hint: "IPv6 address, e.g. fd00::40", re: /^[0-9a-f:]+$/i },
+  CNAME: { hint: "Target hostname. End with a dot for a full name.", re: /^[a-z0-9.-]+$/i },
+  MX:    { hint: "Mail server hostname", re: /^[a-z0-9.-]+$/i, prio: true },
+  TXT:   { hint: "Text value, e.g. v=spf1 mx -all", re: /.+/ },
+  SRV:   { hint: "weight port target, e.g. 5 5060 sip.home.lan.", re: /^\d+ \d+ \S+$/, prio: true },
+  PTR:   { hint: "Hostname this address points back to", re: /^[a-z0-9.-]+$/i },
+  NS:    { hint: "Name server hostname", re: /^[a-z0-9.-]+$/i },
+  CAA:   { hint: 'flags tag "value", e.g. 0 issue "letsencrypt.org"', re: /^\d+ \w+ ".+"$/ }
+};
+
+const state = {
+  view: "overview",
+  zone: "home.lan",
+  zoneTab: "records",
+  typeFilter: "ALL",
+  q: "",
+  confirmId: null,
+  editId: null,
+  zones: {
+    "home.lan": { type: "primary", serial: 2026102301, dnssec: "signed", ttl: 3600, ns: "ns1.home.lan.", mail: "hostmaster.home.lan.", records: [
+      ["@","NS",3600,"ns1.home.lan."],["@","MX",3600,"mail.home.lan.",10],["@","TXT",3600,'"v=spf1 mx -all"'],
+      ["ns1","A",3600,"192.168.1.2"],["router","A",3600,"192.168.1.1"],["nas","A",3600,"192.168.1.20"],
+      ["nas","AAAA",3600,"fd00:1::20"],["mail","A",3600,"192.168.1.25"],["www","CNAME",3600,"nas.home.lan."],
+      ["printer","A",1800,"192.168.1.40"],["hass","A",300,"192.168.1.50"],["_sip._udp","SRV",3600,"5 5060 pbx.home.lan.",10],
+      ["pbx","A",3600,"192.168.1.60"],["@","CAA",86400,'0 issue "letsencrypt.org"']
+    ]},
+    "1.168.192.in-addr.arpa": { type: "primary", serial: 2026102301, dnssec: "unsigned", ttl: 3600, ns: "ns1.home.lan.", mail: "hostmaster.home.lan.", records: [
+      ["@","NS",3600,"ns1.home.lan."],["1","PTR",3600,"router.home.lan."],["2","PTR",3600,"ns1.home.lan."],
+      ["20","PTR",3600,"nas.home.lan."],["25","PTR",3600,"mail.home.lan."],["40","PTR",3600,"printer.home.lan."]
+    ]},
+    "lab.example.net": { type: "primary", serial: 2026101804, dnssec: "unsigned", ttl: 600, ns: "ns1.home.lan.", mail: "hostmaster.home.lan.", records: [
+      ["@","NS",600,"ns1.home.lan."],["k8s","A",600,"10.20.0.10"],["*.apps","CNAME",600,"k8s.lab.example.net."],
+      ["git","A",600,"10.20.0.15"],["ci","A",600,"10.20.0.16"]
+    ]},
+    "example.org": { type: "secondary", serial: 2026102207, dnssec: "signed", ttl: 3600, primary: "203.0.113.10", ns: "a.ns.example.org.", mail: "dns.example.org.", records: [
+      ["@","NS",3600,"a.ns.example.org."],["@","NS",3600,"ns1.home.lan."],["@","A",3600,"203.0.113.80"],["www","CNAME",3600,"example.org."]
+    ]}
+  },
+  events: [
+    ["16:21", "ok", "zone home.lan/IN: loaded serial 2026102301 (DNSSEC signed)"],
+    ["16:21", "info", "rndc reload: reload queued by smc"],
+    ["14:02", "ok", "transfer of 'example.org/IN' from 203.0.113.10#53: Transfer completed: 1 messages, 6 records"],
+    ["11:47", "warn", "client @0x7f 10.0.4.9#51022: query (cache) 'ads.tracker.test/A/IN' denied"],
+    ["09:00", "ok", "managed-keys-zone: Key 20326 for zone . is now trusted"],
+    ["Yesterday", "info", "lab.example.net: serial bumped to 2026101804 by smc"]
+  ]
+};
+let nextId = 1;
+for (const z of Object.values(state.zones)) z.records = z.records.map(([name,type,ttl,value,prio]) => ({ id: nextId++, name, type, ttl, value, prio }));
+
+const qps = [38,41,36,44,52,61,58,49,47,55,72,88,94,81,76,70,66,74,90,103,97,84,69,57];
+const qtypes = [["A",48],["AAAA",27],["HTTPS",9],["PTR",7],["TXT",4],["MX",3],["other",2]];
+const log = [
+  ["16:24:07.112","192.168.1.31","nas.home.lan","A","NOERROR","0.3"],
+  ["16:24:06.981","192.168.1.31","nas.home.lan","AAAA","NOERROR","0.2"],
+  ["16:24:05.440","192.168.1.77","api.github.com","A","NOERROR","18.6"],
+  ["16:24:05.402","192.168.1.77","api.github.com","HTTPS","NOERROR","21.0"],
+  ["16:24:03.019","10.0.4.9","ads.tracker.test","A","REFUSED","0.1"],
+  ["16:24:01.665","192.168.1.50","hass.home.lan","A","NOERROR","0.2"],
+  ["16:23:59.207","192.168.1.12","printr.home.lan","A","NXDOMAIN","0.3"],
+  ["16:23:58.774","192.168.1.40","40.1.168.192.in-addr.arpa","PTR","NOERROR","0.2"],
+  ["16:23:55.130","192.168.1.31","git.lab.example.net","A","NOERROR","0.4"],
+  ["16:23:52.948","192.168.1.77","time.cloudflare.com","A","NOERROR","12.9"],
+  ["16:23:50.003","192.168.1.20","example.org","SOA","NOERROR","0.3"],
+  ["16:23:47.551","192.168.1.31","mail.home.lan","MX","NOERROR","0.2"]
+];
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const fmtTtl = t => t % 86400 === 0 ? (t/86400)+"d" : t % 3600 === 0 ? (t/3600)+"h" : t % 60 === 0 ? (t/60)+"m" : t+"s";
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 3200);
+}
+function bumpSerial(z) {
+  const today = 20261023, base = Math.floor(z.serial / 100);
+  z.serial = base >= today ? z.serial + 1 : today * 100 + 1;
+}
+function totalRecords() { return Object.values(state.zones).reduce((n, z) => n + z.records.length, 0); }
+
+/* ---------- Navigation ---------- */
+const VIEWS = [["overview","Overview"],["zones","Zones"],["querylog","Query log"],["server","Server"]];
+function renderNav() {
+  $("#viewNav").innerHTML = VIEWS.map(([k, l]) => `<a href="#${k}" data-view="${k}" class="${state.view === k ? "on" : ""}">${l}</a>`).join("");
+  $("#zoneNav").innerHTML = Object.entries(state.zones).map(([name, z]) =>
+    `<a href="#zones" data-zone="${esc(name)}" class="${state.view === "zone" && state.zone === name ? "on" : ""}" title="${esc(name)}"><span class="mono">${esc(name)}</span><em>${z.type === "secondary" ? "sec" : z.records.length}</em></a>`).join("");
+}
+function go(view, zone) {
+  state.view = view; if (zone) state.zone = zone;
+  state.confirmId = null; render();
+  try { history.replaceState(null, "", "#" + (view === "zone" ? "zones" : view)); } catch (e) {}
+  window.scrollTo(0, 0);
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-view],[data-zone]");
+  if (!a) return;
+  e.preventDefault();
+  if (a.dataset.zone) { state.zoneTab = "records"; state.typeFilter = "ALL"; state.q = ""; go("zone", a.dataset.zone); }
+  else go(a.dataset.view);
+});
+
+/* ---------- Views ---------- */
+function render() {
+  renderNav();
+  const crumbs = { overview: "Overview", zones: "Zones", querylog: "Query log", server: "Server" };
+  $("#crumbs").innerHTML = state.view === "zone"
+    ? `<a href="#zones" data-view="zones" style="color:inherit">Zones</a> / <b class="mono">${esc(state.zone)}</b>`
+    : `<b>${crumbs[state.view]}</b>`;
+  const v = $("#view");
+  if (state.view === "overview") v.innerHTML = viewOverview();
+  else if (state.view === "zones") v.innerHTML = viewZones();
+  else if (state.view === "zone") v.innerHTML = viewZone();
+  else if (state.view === "querylog") v.innerHTML = viewLog();
+  else v.innerHTML = viewServer();
+}
+
+function sparkline() {
+  const W = 600, H = 150, pl = 34, pr = 10, pt = 10, pb = 22, max = 120;
+  const x = i => pl + i * (W - pl - pr) / (qps.length - 1);
+  const y = v => pt + (1 - v / max) * (H - pt - pb);
+  const pts = qps.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const grid = [0, 40, 80, 120].map(g => `<line x1="${pl}" x2="${W-pr}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)" stroke-width="1"/><text x="${pl-6}" y="${y(g)+4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-mono)">${g}</text>`).join("");
+  const xl = [[0,"16:00"],[6,"16:06"],[12,"16:12"],[18,"16:18"],[23,"16:23"]].map(([i,l]) => `<text x="${x(i)}" y="${H-6}" text-anchor="${i===23?"end":i===0?"start":"middle"}" font-size="10" fill="var(--muted)" font-family="var(--f-mono)">${l}</text>`).join("");
+  const last = qps.length - 1;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Queries per second, last 24 minutes, peaking at 103">
+    ${grid}
+    <polygon points="${x(0)},${y(0)} ${pts} ${x(last)},${y(0)}" fill="var(--accent)" fill-opacity="0.14"/>
+    <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    <circle cx="${x(last)}" cy="${y(qps[last])}" r="3.5" fill="var(--accent)"/>
+    ${xl}
+  </svg>`;
+}
+
+function viewOverview() {
+  const zones = Object.values(state.zones);
+  const sec = zones.filter(z => z.type === "secondary").length;
+  const signed = zones.filter(z => z.dnssec === "signed").length;
+  const qmax = qtypes[0][1];
+  const lvl = { ok: "ok", info: "info", warn: "warn" };
+  return `
+  <div class="head"><div><h1>ns1.home.lan</h1><p class="sub">Primary for ${zones.length - sec} zones, secondary for ${sec}. Recursion open to trusted networks only.</p></div>
+    <span class="pill ok"><span class="dot"></span>named-checkconf passed</span></div>
+  <div class="stats">
+    <div class="panel stat"><label>Queries / sec</label><strong class="num">57</strong><span>peak 103 in last 24 min</span></div>
+    <div class="panel stat"><label>Cache hit rate</label><strong class="num">91.4%</strong><span>48,210 entries cached</span></div>
+    <div class="panel stat"><label>Zones · records</label><strong class="num">${zones.length} · ${totalRecords()}</strong><span>${signed} DNSSEC signed</span></div>
+    <div class="panel stat"><label>Refused today</label><strong class="num">312</strong><span>outside trusted ACL</span></div>
+  </div>
+  <div class="grid2">
+    <section class="panel"><header><h2>Query rate</h2><span class="crumbs mono">queries/sec · 1 min buckets</span></header><div class="body">${sparkline()}</div></section>
+    <section class="panel"><header><h2>Query types</h2><span class="crumbs">% of last hour</span></header><div class="body bars">
+      ${qtypes.map(([t, p]) => `<div class="bar"><span class="mono">${t}</span><span class="track"><i style="width:${p / qmax * 100}%"></i></span><span class="num right" style="text-align:right">${p}%</span></div>`).join("")}
+    </div></section>
+  </div>
+  <div class="grid2">
+    <section class="panel"><header><h2>Zones</h2><a class="btn sm" href="#zones" data-view="zones">All zones</a></header>${zonesTable()}</section>
+    <section class="panel"><header><h2>Recent events</h2><span class="crumbs mono">named.log</span></header>
+      <ul class="feed">${state.events.slice(0, 6).map(([t, l, m]) => `<li><time>${t}</time><span><span class="pill ${lvl[l]}" style="margin-right:6px">${l}</span><span class="mono" style="font-size:12px">${esc(m)}</span></span></li>`).join("")}</ul>
+    </section>
+  </div>`;
+}
+
+function zonesTable() {
+  return `<div class="tablewrap"><table><thead><tr><th>Zone</th><th>Type</th><th class="right">Records</th><th>Serial</th><th>DNSSEC</th></tr></thead><tbody>
+  ${Object.entries(state.zones).map(([n, z]) => `<tr class="clickable" data-zone="${esc(n)}"><td class="mono">${esc(n)}</td>
+    <td><span class="pill ${z.type === "primary" ? "info" : "warn"}">${z.type}</span></td>
+    <td class="right num">${z.records.length}</td><td class="mono num">${z.serial}</td>
+    <td>${z.dnssec === "signed" ? '<span class="pill ok">signed</span>' : '<span class="pill" style="background:var(--sunk);color:var(--muted)">unsigned</span>'}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+function viewZones() {
+  return `<div class="head"><div><h1>Zones</h1><p class="sub">Every zone named serves. Pick one to edit its records.</p></div>
+    <button class="btn primary" type="button" id="newZone">New zone</button></div>
+    <section class="panel">${zonesTable()}</section>`;
+}
+
+function filteredRecords(z) {
+  const q = state.q.toLowerCase();
+  return z.records.filter(r => (state.typeFilter === "ALL" || r.type === state.typeFilter) &&
+    (!q || r.name.toLowerCase().includes(q) || r.value.toLowerCase().includes(q)));
+}
+
+function viewZone() {
+  const z = state.zones[state.zone];
+  const ro = z.type === "secondary";
+  const types = ["ALL", ...new Set(z.records.map(r => r.type))];
+  const head = `<div class="head"><div><h1 class="mono" style="font-family:var(--f-mono);font-size:24px;font-weight:500">${esc(state.zone)}</h1>
+    <p class="sub">${ro ? `Secondary zone, transferred from <span class="mono">${z.primary}</span>. Records are read-only here.` : `Primary zone · serial <span class="mono num">${z.serial}</span> · default TTL ${fmtTtl(z.ttl)}`}</p></div>
+    ${ro ? `<button class="btn" type="button" id="retransfer">Retransfer now</button>` : `<button class="btn primary" type="button" id="addRec">Add record</button>`}</div>`;
+  const tabs = `<div class="tabs" role="tablist">${[["records","Records"],["file","Zone file"],["soa","SOA & settings"]].map(([k,l]) =>
+    `<button type="button" role="tab" data-ztab="${k}" class="${state.zoneTab === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  let body = "";
+  if (state.zoneTab === "records") {
+    const rows = filteredRecords(z);
+    body = `<section class="panel"><header><div class="filters">${types.map(t => `<button type="button" class="chip ${state.typeFilter === t ? "on" : ""}" data-tf="${t}">${t}</button>`).join("")}</div>
+      <input class="search" id="recSearch" type="search" placeholder="Filter by name or value" value="${esc(state.q)}" aria-label="Filter records"></header>
+      <div class="tablewrap"><table><thead><tr><th>Name</th><th>Type</th><th>TTL</th><th>Value</th>${ro ? "" : '<th class="right">Actions</th>'}</tr></thead><tbody>
+      ${rows.map(r => `<tr data-id="${r.id}" class="${r.id === state.flashId ? "new" : ""}"><td class="mono">${esc(r.name)}</td><td><span class="rtype">${r.type}</span></td>
+        <td class="mono num">${fmtTtl(r.ttl)}</td><td class="val">${r.prio != null ? `<span style="color:var(--muted)">${r.prio}</span> ` : ""}${esc(r.value)}${r.note ? `<div style="font-family:var(--f-body);color:var(--muted);font-size:12px">${esc(r.note)}</div>` : ""}</td>
+        ${ro ? "" : `<td class="right" style="white-space:nowrap">${state.confirmId === r.id
+          ? `<span class="confirm">Delete this record? <button class="btn sm danger" type="button" data-del="${r.id}">Delete</button><button class="btn sm" type="button" data-cancel>Keep</button></span>`
+          : `<button class="btn sm ghost" type="button" data-edit="${r.id}">Edit</button><button class="btn sm ghost danger" type="button" data-ask="${r.id}">Delete</button>`}</td>`}</tr>`).join("")
+        || `<tr><td colspan="5" style="color:var(--muted);padding:24px 14px">No records match this filter.</td></tr>`}
+      </tbody></table></div></section>`;
+  } else if (state.zoneTab === "file") {
+    body = `<section class="panel"><header><h2>db.${esc(state.zone)}</h2><span class="crumbs">Generated by briDNS from the records above</span></header><pre class="zone">${zoneFile(state.zone, z)}</pre></section>`;
+  } else {
+    body = `<section class="panel"><div class="body"><dl class="kv">
+      <dt>Primary NS (MNAME)</dt><dd>${esc(z.ns)}</dd><dt>Contact (RNAME)</dt><dd>${esc(z.mail)}</dd>
+      <dt>Serial</dt><dd>${z.serial} <span style="color:var(--muted);font-family:var(--f-body)">· YYYYMMDDnn, bumped on every change</span></dd>
+      <dt>Refresh</dt><dd>3600 (1h)</dd><dt>Retry</dt><dd>900 (15m)</dd><dt>Expire</dt><dd>1209600 (14d)</dd><dt>Negative TTL</dt><dd>300 (5m)</dd>
+      <dt>allow-transfer</dt><dd>${ro ? "none" : "{ none; }"}</dd><dt>allow-update</dt><dd>{ none; }</dd>
+      <dt>DNSSEC</dt><dd>${z.dnssec === "signed" ? "dnssec-policy default · KSK 41822 · ZSK 9917" : "off"}</dd>
+    </dl></div></section>`;
+  }
+  return head + tabs + body;
+}
+
+function zoneFile(name, z) {
+  const pad = (s, n) => String(s).padEnd(n);
+  const lines = [
+    `<span class="d">$ORIGIN</span> ${esc(name)}.`, `<span class="d">$TTL</span> ${z.ttl}`,
+    `@        IN SOA ${esc(z.ns)} ${esc(z.mail)} (`,
+    `             ${z.serial} <span class="c">; serial</span>`,
+    `             3600       <span class="c">; refresh</span>`,
+    `             900        <span class="c">; retry</span>`,
+    `             1209600    <span class="c">; expire</span>`,
+    `             300 )      <span class="c">; negative cache TTL</span>`, ""
+  ];
+  for (const r of z.records) lines.push(`${esc(pad(r.name, 9))}${pad(r.ttl === z.ttl ? "" : r.ttl, 7)}IN ${pad(r.type, 6)}${r.prio != null ? r.prio + " " : ""}${esc(r.value)}${r.note ? ` <span class="c">; ${esc(r.note)}</span>` : ""}`);
+  return lines.join("\n");
+}
+
+function viewLog() {
+  const cls = { NOERROR: "ok", NXDOMAIN: "warn", REFUSED: "bad", SERVFAIL: "bad" };
+  return `<div class="head"><div><h1>Query log</h1><p class="sub">Live tail of named's query log. Sample entries shown.</p></div>
+    <span class="pill ok"><span class="dot"></span>Following</span></div>
+    <section class="panel"><div class="tablewrap"><table class="log"><thead><tr><th>Time</th><th>Client</th><th>Name</th><th>Type</th><th>Result</th><th class="right">ms</th></tr></thead><tbody>
+    ${log.map(([t, c, n, ty, r, ms]) => `<tr><td>${t}</td><td>${c}</td><td>${n}</td><td>${ty}</td><td><span class="pill ${cls[r]}">${r}</span></td><td class="right num">${ms}</td></tr>`).join("")}
+    </tbody></table></div></section>`;
+}
+
+function viewServer() {
+  return `<div class="head"><div><h1>Server</h1><p class="sub">Settings from <span class="mono">named.conf.options</span>. Saving runs named-checkconf before reload.</p></div></div>
+  <div class="grid2">
+    <section class="panel"><header><h2>Resolver</h2></header><div class="body"><dl class="kv">
+      <dt>Recursion</dt><dd>yes, for acl "trusted"</dd>
+      <dt>acl trusted</dt><dd>127.0.0.0/8; 10.0.0.0/8; 172.16.0.0/12; 192.168.0.0/16;</dd>
+      <dt>Forwarders</dt><dd>1.1.1.1; 9.9.9.9;</dd>
+      <dt>dnssec-validation</dt><dd>auto</dd>
+      <dt>listen-on</dt><dd>any (container :53 → host :5353)</dd>
+      <dt>querylog</dt><dd>yes</dd>
+    </dl></div></section>
+    <section class="panel"><header><h2>Containers</h2><span class="crumbs mono">docker compose</span></header><div class="tablewrap"><table><thead><tr><th>Service</th><th>Image</th><th>State</th></tr></thead><tbody>
+      <tr><td class="mono">bridns-bind</td><td class="mono">ubuntu/bind9:9.18-22.04</td><td><span class="pill ok">healthy</span></td></tr>
+      <tr><td class="mono">bridns-web</td><td class="mono">nginx:1.27-alpine</td><td><span class="pill ok">running</span></td></tr>
+      <tr><td class="mono">bridns-api</td><td class="mono">planned</td><td><span class="pill" style="background:var(--sunk);color:var(--muted)">not built</span></td></tr>
+    </tbody></table></div></section>
+  </div>`;
+}
+
+/* ---------- Zone interactions ---------- */
+$("#view").addEventListener("click", e => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  const z = state.zones[state.zone];
+  if (t.dataset.ztab) { state.zoneTab = t.dataset.ztab; render(); }
+  else if (t.dataset.tf) { state.typeFilter = t.dataset.tf; render(); }
+  else if (t.dataset.ask) { state.confirmId = +t.dataset.ask; render(); }
+  else if (t.hasAttribute("data-cancel")) { state.confirmId = null; render(); }
+  else if (t.dataset.del) {
+    const r = z.records.find(r => r.id === +t.dataset.del);
+    z.records = z.records.filter(x => x !== r); bumpSerial(z); state.confirmId = null; render();
+    toast(`Deleted ${r.name} ${r.type} · serial ${z.serial}`);
+  }
+  else if (t.dataset.edit) openDrawer(z.records.find(r => r.id === +t.dataset.edit));
+  else if (t.id === "addRec") openDrawer();
+  else if (t.id === "retransfer") toast(`rndc retransfer ${state.zone} · queued`);
+  else if (t.id === "newZone") toast("New zone wizard is not in this mockup yet");
+});
+$("#view").addEventListener("input", e => {
+  if (e.target.id !== "recSearch") return;
+  state.q = e.target.value; const pos = e.target.selectionStart; render();
+  const s = $("#recSearch"); s.focus(); s.setSelectionRange(pos, pos);
+});
+
+/* ---------- Drawer ---------- */
+$("#fType").innerHTML = Object.keys(TYPES).map(t => `<option>${t}</option>`).join("");
+function syncType() {
+  const t = TYPES[$("#fType").value];
+  $("#fValHint").textContent = t.hint; $("#prioWrap").hidden = !t.prio;
+}
+function syncName() {
+  const n = $("#fName").value.trim() || "@";
+  $("#fNameHint").innerHTML = `Resolves as <span class="mono">${esc(n === "@" ? state.zone : n + "." + state.zone)}.</span>`;
+}
+$("#fType").addEventListener("change", syncType);
+$("#fName").addEventListener("input", syncName);
+function openDrawer(rec) {
+  state.editId = rec ? rec.id : null;
+  $("#drawerTitle").textContent = rec ? `Edit ${rec.name} ${rec.type}` : `Add record to ${state.zone}`;
+  $("#fName").value = rec ? rec.name : "";
+  $("#fType").value = rec ? rec.type : "A";
+  $("#fTtl").value = rec ? rec.ttl : state.zones[state.zone].ttl;
+  $("#fPrio").value = rec && rec.prio != null ? rec.prio : 10;
+  $("#fVal").value = rec ? rec.value : "";
+  $("#fNote").value = rec && rec.note ? rec.note : "";
+  $("#fErr").hidden = true;
+  syncType(); syncName();
+  $("#scrim").hidden = false; $("#fName").focus();
+}
+function closeDrawer() { $("#scrim").hidden = true; }
+$("#closeDrawer").onclick = closeDrawer; $("#cancelDrawer").onclick = closeDrawer;
+$("#scrim").addEventListener("click", e => { if (e.target.id === "scrim") closeDrawer(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#scrim").hidden) closeDrawer(); });
+$("#recForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const z = state.zones[state.zone];
+  const name = $("#fName").value.trim() || "@", type = $("#fType").value, ttl = +$("#fTtl").value, value = $("#fVal").value.trim();
+  const err = m => { $("#fErr").textContent = m; $("#fErr").hidden = false; };
+  if (!/^(@|\*|[a-z0-9_*]([a-z0-9_.*-]*[a-z0-9])?)$/i.test(name)) return err("Name can use letters, digits, hyphens, dots and underscores, or @ for the zone apex.");
+  if (!(ttl >= 60)) return err("TTL must be at least 60 seconds.");
+  if (!TYPES[type].re.test(value)) return err(`That value doesn't look like a valid ${type} record. ${TYPES[type].hint}.`);
+  if (type === "CNAME" && z.records.some(r => r.name === name && r.id !== state.editId)) return err(`${name} already has other records, so it can't also be a CNAME.`);
+  const data = { name, type, ttl, value, prio: TYPES[type].prio ? +$("#fPrio").value : undefined, note: $("#fNote").value.trim() || undefined };
+  let rec;
+  if (state.editId) { rec = z.records.find(r => r.id === state.editId); Object.assign(rec, data); }
+  else { rec = { id: nextId++, ...data }; z.records.push(rec); }
+  bumpSerial(z); state.flashId = rec.id; state.typeFilter = "ALL"; state.q = "";
+  closeDrawer(); render();
+  toast(`${state.editId ? "Updated" : "Added"} ${name} ${type} · serial ${z.serial} · named-checkzone OK`);
+});
+
+$("#reloadBtn").onclick = () => { state.events.unshift(["16:25", "info", "rndc reload: server reload successful"]); toast("rndc reload · server reload successful"); if (state.view === "overview") render(); };
+$("#checkBtn").onclick = () => toast("named-checkconf -z · 4 zones OK, no errors");
+
+const h = (location.hash || "").slice(1);
+if (VIEWS.some(([k]) => k === h)) state.view = h;
+render();
+</script>

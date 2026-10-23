@@ -1,0 +1,34 @@
+name: bridns
+
+services:
+  bind:
+    image: ubuntu/bind9:9.18-22.04_beta
+    container_name: bridns-bind
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+      - BIND9_USER=bind
+    ports:
+      - "5353:53/udp"   # change to 53:53 once the host resolver is out of the way
+      - "5353:53/tcp"
+    volumes:
+      - ./bind/config:/etc/bind:Z
+      - ./bind/zones:/var/lib/bind:Z
+      - bind-cache:/var/cache/bind
+    healthcheck:
+      test: ["CMD", "dig", "@127.0.0.1", "home.lan", "SOA", "+short"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build: ./web
+    container_name: bridns-web
+    restart: unless-stopped
+    ports:
+      - "8088:80"
+    depends_on:
+      - bind
+
+volumes:
+  bind-cache:
