@@ -1,0 +1,128 @@
+<title>Sign in · briDNS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: split screen. Aubergine brand panel on the left, sign-in form on the right; stacks on phones. Tokens match the console. */
+:root {
+  --bg: #f2f0f7; --panel: #ffffff; --ink: #1d1730; --muted: #675f7d; --line: #dcd6e8;
+  --accent: #6d3fd1; --accent-ink: #ffffff; --accent-soft: #ebe3fb;
+  --bad: #b3261e; --bad-soft: #f8dcd9;
+  --rail: #241a3d; --rail-ink: #d6cdee; --hi: #b79cff;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #120e1d; --panel: #1b1529; --ink: #ece7f7; --muted: #a197ba; --line: #2e2543;
+  --accent: #a98bff; --accent-ink: #1a0d3d; --accent-soft: #2e2152; --bad: #f0857c; --bad-soft: #3d1815;
+  --rail: #0c0915; --rail-ink: #c2b7de; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #120e1d; --panel: #1b1529; --ink: #ece7f7; --muted: #a197ba; --line: #2e2543;
+  --accent: #a98bff; --accent-ink: #1a0d3d; --accent-soft: #2e2152; --bad: #f0857c; --bad-soft: #3d1815;
+  --rail: #0c0915; --rail-ink: #c2b7de; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
+* { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 100%; }
+.side { background: var(--rail); color: var(--rail-ink); display: flex; flex-direction: column; justify-content: space-between; gap: 40px; padding-block: 40px; padding-left: max(40px, env(safe-area-inset-left, 0px)); padding-right: 40px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand b { font: 700 26px/1 var(--f-display); color: #f7f4ff; letter-spacing: -0.01em; }
+.brand b span { color: var(--hi); }
+.side h1 { margin: 0; font: 700 clamp(28px, 3.4vw, 42px)/1.1 var(--f-display); color: #f7f4ff; letter-spacing: -0.02em; text-wrap: balance; max-width: 16ch; }
+.side p { margin: 12px 0 0; max-width: 40ch; }
+.soa { font: 12px/1.7 var(--f-mono); color: var(--rail-ink); opacity: .7; white-space: pre; overflow-x: auto; }
+
+.formside { display: flex; align-items: center; justify-content: center; padding-block: 40px; padding-left: 24px; padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+form { width: min(360px, 100%); display: flex; flex-direction: column; gap: 16px; }
+form h2 { margin: 0; font: 700 26px/1.2 var(--f-display); }
+form .sub { margin: -8px 0 4px; color: var(--muted); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: 600; }
+.field input { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 10px 12px; width: 100%; }
+.field input:focus { border-color: var(--accent); }
+.pw { position: relative; }
+.pw input { padding-right: 64px; }
+.pw button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--muted); font-size: 12.5px; cursor: pointer; padding: 6px; }
+.go { border: 0; background: var(--accent); color: var(--accent-ink); padding: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.go:hover { filter: brightness(1.08); }
+.go[disabled] { opacity: .6; cursor: progress; }
+.err { background: var(--bad-soft); color: var(--bad); padding: 9px 12px; border-radius: 6px; font-size: 13px; margin: 0; }
+.foot { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+
+@media (max-width: 760px) {
+  .split { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .side { padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 16px; }
+  .side h1 { font-size: 24px; }
+  .side .soa, .side p { display: none; }
+  .formside { align-items: flex-start; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+}
+</style>
+
+<div class="split">
+  <aside class="side">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="7" fill="#6d3fd1"/><path d="M5 20 Q15 7 25 20" stroke="#f1ebff" stroke-width="2.2" fill="none"/><path d="M5 20h20M10 20v-4.2M15 20v-6.4M20 20v-4.2" stroke="#f1ebff" stroke-width="1.6"/></svg>
+      <b>bri<span>DNS</span></b>
+    </div>
+    <div>
+      <h1>Your zones, records and resolver in one console.</h1>
+      <p>Manage BIND 9 on ns1.home.lan. Changes are checked with named-checkzone before BIND reloads them.</p>
+    </div>
+    <div class="soa">home.lan.  IN SOA ns1.home.lan. hostmaster.home.lan. (
+            2026102301 3600 900 1209600 300 )</div>
+  </aside>
+
+  <main class="formside">
+    <form id="login" novalidate>
+      <h2>Sign in</h2>
+      <p class="sub">Use your briDNS admin account.</p>
+      <p class="err" id="err" role="alert" hidden></p>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" value="admin" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw">
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="button" id="showPw" aria-controls="password">Show</button>
+        </div>
+      </div>
+      <button class="go" type="submit" id="submit">Sign in</button>
+      <p class="foot">Forgot the password? It's <code>BRIDNS_ADMIN_PASSWORD</code> in the server's <code>.env</code> file.</p>
+    </form>
+  </main>
+</div>
+
+<script>
+const form = document.getElementById("login"), err = document.getElementById("err"), btn = document.getElementById("submit");
+const pw = document.getElementById("password");
+pw.focus();
+document.getElementById("showPw").onclick = e => {
+  const show = pw.type === "password";
+  pw.type = show ? "text" : "password"; e.target.textContent = show ? "Hide" : "Show";
+};
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+  err.hidden = true;
+  const username = form.username.value.trim(), password = pw.value;
+  if (!username || !password) { err.textContent = "Enter your username and password."; err.hidden = false; return; }
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try {
+    const res = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
+    if (res.ok) { location.href = "/"; return; }
+    const data = await res.json().catch(() => ({}));
+    err.textContent = data.error || "Sign-in failed. Try again.";
+  } catch (x) {
+    err.textContent = "Can't reach the briDNS server. Check that the api container is running.";
+  }
+  err.hidden = false; btn.disabled = false; btn.textContent = "Sign in"; pw.select();
+});
+</script>

@@ -28,6 +28,13 @@ services:
       - "8088:80"
     depends_on:
       - bind
+      - api
+
+  api:
+    build: ./api
+    container_name: bridns-api
+    restart: unless-stopped
+    env_file: .env
 
 volumes:
   bind-cache:

@@ -3,3 +3,6 @@ bind/config/rndc.key
 # BIND runtime files
 bind/zones/*.jnl
 bind/zones/*.jbk
+
+# local settings and the admin password
+.env

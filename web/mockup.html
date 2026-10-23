@@ -68,6 +68,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; padding-block: 14px; padding-left: 28px; padding-right: max(28px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); background: var(--panel); }
 .crumbs { color: var(--muted); font-size: 13px; }
 .crumbs b { color: var(--ink); font-weight: 600; }
+.user { display: inline-flex; align-items: center; gap: 8px; padding-left: 10px; margin-left: 2px; border-left: 1px solid var(--line); font-size: 13px; }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 600 12px/1 var(--f-body); text-transform: uppercase; }
 .mock { font: 500 11px/1 var(--f-mono); padding: 5px 8px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); letter-spacing: .03em; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .view { padding-block: 24px 48px; padding-left: 28px; padding-right: max(28px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
@@ -200,6 +202,7 @@ pre.zone .d { color: var(--accent); }
         <span class="mock" title="This is a design mockup. Nothing talks to BIND yet.">MOCKUP · SAMPLE DATA</span>
         <button class="btn" id="checkBtn" type="button">Check config</button>
         <button class="btn primary" id="reloadBtn" type="button">Reload BIND</button>
+        <span class="user"><span class="avatar" aria-hidden="true" id="avatar">a</span><span id="whoami">admin</span><button class="btn sm ghost" type="button" id="signOut">Sign out</button></span>
       </div>
     </div>
     <div class="view" id="view"></div>
@@ -589,6 +592,18 @@ $("#recForm").addEventListener("submit", e => {
 
 $("#reloadBtn").onclick = () => { state.events.unshift(["16:25", "info", "rndc reload: server reload successful"]); toast("rndc reload · server reload successful"); if (state.view === "overview") render(); };
 $("#checkBtn").onclick = () => toast("named-checkconf -z · 4 zones OK, no errors");
+
+/* ---------- Session (served by the api container; absent in the static preview) ---------- */
+fetch("/api/me").then(r => r.ok ? r.json() : null).then(me => {
+  if (me && me.user) { $("#whoami").textContent = me.user; $("#avatar").textContent = me.user[0]; }
+}).catch(() => {});
+$("#signOut").onclick = async () => {
+  try {
+    const r = await fetch("/api/logout", { method: "POST" });
+    if (!r.ok) throw new Error();
+    location.href = "/login";
+  } catch (e) { toast("Sign out works when briDNS runs in Docker. This preview has no server."); }
+};
 
 const h = (location.hash || "").slice(1);
 if (VIEWS.some(([k]) => k === h)) state.view = h;
