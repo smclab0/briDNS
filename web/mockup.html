@@ -180,7 +180,7 @@ pre.zone .d { color: var(--accent); }
   <aside class="rail">
     <div class="brand">
       <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="7" fill="#6d3fd1"/><path d="M5 20 Q15 7 25 20" stroke="#f1ebff" stroke-width="2.2" fill="none"/><path d="M5 20h20M10 20v-4.2M15 20v-6.4M20 20v-4.2" stroke="#f1ebff" stroke-width="1.6"/></svg>
-      <div><b>bri<span>DNS</span></b><small>BIND 9.18.39 · ns1</small></div>
+      <div><b>bri<span>DNS</span></b><small>BIND 9.18.49 · ns1</small></div>
     </div>
     <div class="views-nav">
       <h6>Console</h6>
@@ -508,7 +508,7 @@ function viewServer() {
       <dt>querylog</dt><dd>yes</dd>
     </dl></div></section>
     <section class="panel"><header><h2>Containers</h2><span class="crumbs mono">docker compose</span></header><div class="tablewrap"><table><thead><tr><th>Service</th><th>Image</th><th>State</th></tr></thead><tbody>
-      <tr><td class="mono">bridns-bind</td><td class="mono">ubuntu/bind9:9.18-22.04</td><td><span class="pill ok">healthy</span></td></tr>
+      <tr><td class="mono">bridns-bind</td><td class="mono">alpine:3.20 + bind 9.18</td><td><span class="pill ok">healthy</span></td></tr>
       <tr><td class="mono">bridns-web</td><td class="mono">nginx:1.27-alpine</td><td><span class="pill ok">running</span></td></tr>
       <tr><td class="mono">bridns-api</td><td class="mono">planned</td><td><span class="pill" style="background:var(--sunk);color:var(--muted)">not built</span></td></tr>
     </tbody></table></div></section>

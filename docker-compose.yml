@@ -2,12 +2,11 @@ name: bridns
 
 services:
   bind:
-    image: ubuntu/bind9:9.18-22.04_beta
+    build: ./bind
     container_name: bridns-bind
     restart: unless-stopped
     environment:
       - TZ=UTC
-      - BIND9_USER=bind
     ports:
       - "5353:53/udp"   # change to 53:53 once the host resolver is out of the way
       - "5353:53/tcp"

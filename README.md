@@ -8,7 +8,8 @@ A web console for managing a BIND 9 DNS server, packaged with Docker.
 
 ```bash
 # one-time: generate the rndc control key
-docker run --rm --entrypoint tsig-keygen ubuntu/bind9:9.18-22.04_beta rndc-key > bind/config/rndc.key
+docker compose build bind
+docker compose run --rm --no-deps -T bind tsig-keygen rndc-key > bind/config/rndc.key
 
 docker compose up -d --build
 ```
@@ -24,7 +25,8 @@ The `:Z` on the volumes relabels them for SELinux. Remove it on hosts without SE
 
 | Path | What it is |
 |---|---|
-| `docker-compose.yml` | `bind` (ubuntu/bind9) + `web` (nginx) services |
+| `docker-compose.yml` | `bind` (Alpine + BIND 9.18) + `web` (nginx Alpine) services |
+| `bind/Dockerfile` | Alpine 3.20 image with `bind` and `bind-tools` |
 | `bind/config/` | `named.conf`, `named.conf.options`, `rndc.key` → `/etc/bind` |
 | `bind/zones/` | zone files → `/var/lib/bind` |
 | `web/mockup.html` | the console UI (single file, vanilla JS) |
